@@ -1,0 +1,62 @@
+{
+  "system_store": "Abinstein App Store v0.1",
+  "available_apps": [
+    {
+      "id": "os.abinstein.launcher",
+      "name": "ABINSTEIN Launcher",
+      "category": "System UI",
+      "description": "Ecranul principal cu ceas si butoane",
+      "status": "READY"
+    },
+    {
+      "id": "os.abinstein.quantum",
+      "name": "Quantum Simulator Core",
+      "category": "Innovation / Science",
+      "description": "Simulatorul tau cuantic experimental",
+      "status": "READY"
+    },
+    {
+      "id": "org.linux.flathub",
+      "name": "Flathub Client",
+      "category": "App Store",
+      "description": "Alternativa la Google Play - Magazin cu mii de aplicatii Linux",
+      "status": "READY"
+    },
+    {
+      "id": "org.signal.desktop",
+      "name": "Signal Messenger",
+      "category": "Chat / Security",
+      "description": "Alternativa sigura la WhatsApp - Mesaje si apeluri complet criptate",
+      "status": "READY"
+    },
+    {
+      "id": "org.videolan.vlc",
+      "name": "VLC Media Player",
+      "category": "Multimedia",
+      "description": "Alternativa la YouTube Player - Ruleaza orice videoclip sau melodie",
+      "status": "READY"
+    },
+    {
+      "id": "org.libreoffice.impress",
+      "name": "LibreOffice Mobile",
+      "category": "Office",
+      "description": "Alternativa la Word si Excel - Scrii documente si tabele gratuit",
+      "status": "READY"
+    },
+    {
+      "id": "org.osmand.maps",
+      "name": "OsmAnd+ Maps",
+      "category": "Navigation",
+      "description": "Alternativa la Google Maps - Harti din toata lumea care merg si fara internet",
+      "status": "READY"
+    },
+    {
+      "id": "org.gimp.editor",
+      "name": "GIMP Photo Editor",
+      "category": "Graphics",
+      "description": "Alternativa la Photoshop - Modifici si decupezi poze direct pe telefon",
+      "status": "READY"
+    }
+  ]
+}
+

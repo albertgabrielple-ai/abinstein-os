@@ -1,0 +1,43 @@
+#include <iostream>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+
+// Definim structura unui Qubit (bit cuantic)
+struct Qubit {
+    double alpha; // Probabilitatea ca qubitul sa fie in starea 0
+    double beta;  // Probabilitatea ca qubitul sa fie in starea 1
+};
+
+// Functie care creeaza un qubit in stare de superpozitie (adica este si 0 si 1 in acelasi timp)
+Qubit initializeaza_qubit() {
+    Qubit q;
+    q.alpha = 1.0 / sqrt(2.0); // 50% sanse sa fie 0
+    q.beta = 1.0 / sqrt(2.0);  // 50% sanse sa fie 1
+    return q;
+}
+
+// Functie care "masoara" qubitul si il forteaza sa devina un bit normal (0 sau 1)
+int masoara_qubit(Qubit q) {
+    double r = (double)rand() / RAND_MAX;
+    if (r < (q.alpha * q.alpha)) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+int main() {
+    srand(time(0));
+    std::cout << "[ABINSTEIN QUANTUM] Se porneste nucleul de simulare cuantica...\n";
+    
+    // Generam qubitul experimental
+    Qubit qubit_test = initializeaza_qubit();
+    std::cout << "[ABINSTEIN QUANTUM] Qubit generat cu succes in stare de superpozitie.\n";
+    
+    // Facem o masuratoare de test
+    int rezultat = masoara_qubit(qubit_test);
+    std::cout << "[ABINSTEIN QUANTUM] Rezultat masuratoare qubit: " << rezultat << "\n";
+    
+    return 0;
+}
