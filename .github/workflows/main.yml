@@ -1,0 +1,26 @@
+name: ABINSTEIN OS - Auto Compile
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-os:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descarca codul ABINSTEIN OS
+      uses: actions/checkout@v4
+
+    - name: Instaleaza uneltele de compilare ARM64
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu qemu-system-arm bison flex libssl-dev bc u-boot-tools
+
+    - name: Compileaza Nucleul (Kernel)
+      run: ./build_os.sh kernel
+
+    - name: Construieste Sistemul de Fisiere (Rootfs)
+      run: ./build_os.sh rootfs
+
