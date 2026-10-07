@@ -1,30 +1,15 @@
-# ABINSTEIN OS Networking Subsystem
-# Network state management, Wi-Fi, Bluetooth, connectivity detection
-
 cmake_minimum_required(VERSION 3.20)
+project(abinstein-network LANGUAGES C)
 
-file(GLOB NETWORK_SOURCES "src/*.c" "src/*.cpp")
+add_library(abinstein-network STATIC src/network_service.c)
 
-if(NETWORK_SOURCES)
-    add_library(abinstein-network STATIC ${NETWORK_SOURCES})
-    target_include_directories(abinstein-network PUBLIC
+target_include_directories(abinstein-network
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
-    target_link_libraries(abinstein-network PUBLIC 
-        abinstein-core
-        abinstein-hal
-        abinstein-services
-    )
-    set_target_properties(abinstein-network PROPERTIES
-        COMPILE_FLAGS "-fPIC -Wall -Wextra"
-    )
-    message(STATUS "Network library: ENABLED")
-else()
-    message(STATUS "Network library: PLACEHOLDER (no sources yet)")
-    add_library(abinstein-network INTERFACE)
-    target_link_libraries(abinstein-network INTERFACE 
-        abinstein-core
-        abinstein-hal
-        abinstein-services
-    )
-endif()
+)
+
+target_compile_features(abinstein-network PUBLIC c_std_11)
+
+target_compile_options(abinstein-network PRIVATE -Wall -Wextra)
+
+message(STATUS "Network service enabled")

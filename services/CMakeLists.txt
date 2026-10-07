@@ -1,28 +1,19 @@
-# ABINSTEIN OS System Services
-# Core services: D-Bus, power management, device management, etc.
-
 cmake_minimum_required(VERSION 3.20)
+project(abinstein-services LANGUAGES C)
 
-file(GLOB SERVICES_SOURCES "src/*.c" "src/*.cpp")
+add_executable(abinstein_dbus_service dbus/abinstein_dbus_service.c)
 
-if(SERVICES_SOURCES)
-    add_library(abinstein-services STATIC ${SERVICES_SOURCES})
-    target_include_directories(abinstein-services PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
-    target_link_libraries(abinstein-services PUBLIC 
-        abinstein-core
-        abinstein-hal
-    )
-    set_target_properties(abinstein-services PROPERTIES
-        COMPILE_FLAGS "-fPIC -Wall -Wextra"
-    )
-    message(STATUS "Services library: ENABLED")
-else()
-    message(STATUS "Services library: PLACEHOLDER (no sources yet)")
-    add_library(abinstein-services INTERFACE)
-    target_link_libraries(abinstein-services INTERFACE 
-        abinstein-core
-        abinstein-hal
-    )
-endif()
+target_include_directories(abinstein_dbus_service PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hal/include
+)
+target_link_libraries(abinstein_dbus_service PRIVATE abinstein-hal)
+
+target_compile_features(abinstein_dbus_service PRIVATE c_std_11)
+
+add_executable(abinstein_dbus_server dbus/abinstein_dbus_server.c)
+add_executable(abinstein_dbus_client dbus/abinstein_dbus_client.c)
+
+target_compile_features(abinstein_dbus_server PRIVATE c_std_11)
+target_compile_features(abinstein_dbus_client PRIVATE c_std_11)
+
+message(STATUS "DBus services enabled")

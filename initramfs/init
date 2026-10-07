@@ -1,246 +1,69 @@
 #!/bin/sh
-# ABINSTEIN OS Init Script (initramfs/init)
-# First script executed by the kernel at boot time
-# Responsible for mounting filesystems and launching the system
+# ABINSTEIN OS initramfs init
+# Minimal early boot sequence for QEMU ARM64 environment
 
-# ============================================================================
-# COLORS FOR TERMINAL OUTPUT
-# ============================================================================
+set -eu
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m'  # No Color
+NC='\033[0m'
 
-echo_status() {
-    echo -e "${GREEN}[INIT]${NC} $1"
+log() { printf '%b[%s]%b %s\n' "${GREEN}" "INIT" "${NC}" "$*"; }
+warn() { printf '%b[%s]%b %s\n' "${YELLOW}" "WARN" "${NC}" "$*"; }
+info() { printf '%b[%s]%b %s\n' "${BLUE}" "INFO" "${NC}" "$*"; }
+
+mount_if_needed() {
+    local type="$1"
+    local src="$2"
+    local target="$3"
+    local opts="${4:-}"
+
+    if mountpoint -q "${target}"; then
+        info "${target} already mounted"
+        return 0
+    fi
+
+    mkdir -p "${target}"
+    if [ -n "${opts}" ]; then
+        mount -t "${type}" -o "${opts}" "${src}" "${target}" || warn "Could not mount ${target}"
+    else
+        mount -t "${type}" "${src}" "${target}" || warn "Could not mount ${target}"
+    fi
 }
 
-echo_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+main() {
+    clear
+    log "ABINSTEIN OS Phase 1 boot sequence"
+    log "Kernel: $(uname -r)"
+    log "Machine: $(uname -m)"
+
+    mount_if_needed proc proc /proc nosuid,nodev,noexec
+    mount_if_needed sysfs sysfs /sys nosuid,nodev,noexec
+    mount_if_needed devtmpfs devtmpfs /dev nosuid,size=10m,nr_inodes=248418,mode=755
+    mkdir -p /dev/pts /run /tmp
+    mount_if_needed devpts devpts /dev/pts nosuid,noexec
+    mount_if_needed tmpfs tmpfs /run nosuid,nodev,mode=755
+
+    [ -e /dev/console ] || mknod /dev/console c 5 1
+    [ -e /dev/null ] || { mknod /dev/null c 1 3; chmod 666 /dev/null; }
+    [ -e /dev/zero ] || { mknod /dev/zero c 1 5; chmod 666 /dev/zero; }
+    [ -e /dev/random ] || { mknod /dev/random c 1 8; chmod 644 /dev/random; }
+    [ -e /dev/urandom ] || { mknod /dev/urandom c 1 9; chmod 644 /dev/urandom; }
+
+    export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+    export HOME=/root
+    export TERM=linux
+
+    log "Launching early system init"
+    if [ -x /etc/init.d/rcS ]; then
+        /etc/init.d/rcS
+    else
+        warn "No /etc/init.d/rcS found; starting shell"
+    fi
+
+    exec /bin/sh
 }
 
-echo_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-echo_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-# ============================================================================
-# BANNER
-# ============================================================================
-
-clear
-echo ""
-echo "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-echo "${GREEN}║                                                           ║${NC}"
-echo "${GREEN}║         ⚛  ABINSTEIN OS - QUANTUM MOBILE OS  ⚛          ║${NC}"
-echo "${GREEN}║                                                           ║${NC}"
-echo "${GREEN}║              ARM64 Linux | Independent Design             ║${NC}"
-echo "${GREEN}║                                                           ║${NC}"
-echo "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
-echo ""
-
-# ============================================================================
-# KERNEL MESSAGE CHECK
-# ============================================================================
-
-echo_status "Kernel initialization sequence started"
-echo_info "Running on: $(uname -s) $(uname -r)"
-echo_info "Architecture: $(uname -m)"
-echo_info "Hostname: $(hostname 2>/dev/null || echo 'unknown')"
-echo ""
-
-# ============================================================================
-# CRITICAL FILESYSTEMS MOUNTING
-# ============================================================================
-
-echo_status "Mounting critical filesystems..."
-
-# /proc filesystem - kernel process information
-if ! mountpoint -q /proc; then
-    echo_info "Mounting /proc (procfs)"
-    mount -t proc -o nosuid,nodev,noexec proc /proc
-    if [ $? -eq 0 ]; then
-        echo_info "✓ /proc mounted successfully"
-    else
-        echo_error "Failed to mount /proc"
-    fi
-else
-    echo_info "/proc already mounted"
-fi
-
-# /sys filesystem - kernel device information
-if ! mountpoint -q /sys; then
-    echo_info "Mounting /sys (sysfs)"
-    mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
-    if [ $? -eq 0 ]; then
-        echo_info "✓ /sys mounted successfully"
-    else
-        echo_error "Failed to mount /sys"
-    fi
-else
-    echo_info "/sys already mounted"
-fi
-
-# /dev filesystem - device files (required for everything)
-if ! mountpoint -q /dev; then
-    echo_info "Mounting /dev (devtmpfs)"
-    mount -t devtmpfs -o nosuid,size=10m,nr_inodes=248418,mode=755 devtmpfs /dev
-    if [ $? -eq 0 ]; then
-        echo_info "✓ /dev mounted successfully"
-    else
-        echo_error "Failed to mount /dev - this is CRITICAL"
-        echo "Attempting fallback to tmpfs..."
-        mount -t tmpfs tmpfs /dev
-    fi
-else
-    echo_info "/dev already mounted"
-fi
-
-# /dev/pts filesystem - pseudo-terminal devices
-echo_info "Creating /dev/pts (pseudo-terminals)"
-mkdir -p /dev/pts
-if ! mountpoint -q /dev/pts; then
-    mount -t devpts -o nosuid,noexec devpts /dev/pts
-    if [ $? -eq 0 ]; then
-        echo_info "✓ /dev/pts mounted successfully"
-    else
-        echo_warn "Failed to mount /dev/pts (non-critical)"
-    fi
-else
-    echo_info "/dev/pts already mounted"
-fi
-
-# /run filesystem - runtime data
-echo_info "Mounting /run (tmpfs)"
-if ! mountpoint -q /run; then
-    mkdir -p /run
-    mount -t tmpfs -o nosuid,nodev,mode=755 tmpfs /run
-    echo_info "✓ /run mounted successfully"
-else
-    echo_info "/run already mounted"
-fi
-
-echo ""
-
-# ============================================================================
-# DEVICE SETUP
-# ============================================================================
-
-echo_status "Setting up device nodes..."
-
-# Create essential devices if they don't exist
-if [ ! -e /dev/console ]; then
-    echo_info "Creating /dev/console"
-    mknod /dev/console c 5 1
-fi
-
-if [ ! -e /dev/null ]; then
-    echo_info "Creating /dev/null"
-    mknod /dev/null c 1 3
-    chmod 666 /dev/null
-fi
-
-if [ ! -e /dev/zero ]; then
-    echo_info "Creating /dev/zero"
-    mknod /dev/zero c 1 5
-    chmod 666 /dev/zero
-fi
-
-if [ ! -e /dev/full ]; then
-    echo_info "Creating /dev/full"
-    mknod /dev/full c 1 7
-    chmod 666 /dev/full
-fi
-
-if [ ! -e /dev/random ]; then
-    echo_info "Creating /dev/random"
-    mknod /dev/random c 1 8
-    chmod 644 /dev/random
-fi
-
-if [ ! -e /dev/urandom ]; then
-    echo_info "Creating /dev/urandom"
-    mknod /dev/urandom c 1 9
-    chmod 644 /dev/urandom
-fi
-
-if [ ! -e /dev/tty ]; then
-    echo_info "Creating /dev/tty"
-    mknod /dev/tty c 5 0
-    chmod 666 /dev/tty
-fi
-
-echo ""
-
-# ============================================================================
-# ENVIRONMENT SETUP
-# ============================================================================
-
-echo_status "Configuring system environment..."
-
-# Set PATH
-export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-echo_info "PATH set to: $PATH"
-
-# Set HOME
-export HOME=/root
-echo_info "HOME set to: $HOME"
-
-# Set TERM for better terminal compatibility
-export TERM=linux
-echo_info "TERM set to: $TERM"
-
-# Set default shell
-SHELL=/bin/sh
-export SHELL
-
-echo ""
-
-# ============================================================================
-# BOOTLOADER MESSAGES
-# ============================================================================
-
-echo_status "Performing system checks..."
-
-echo_info "Kernel version: $(cat /proc/version 2>/dev/null | cut -d' ' -f1-3)"
-echo_info "CPU cores: $(grep -c ^processor /proc/cpuinfo)"
-echo_info "RAM: $(grep MemTotal /proc/meminfo | awk '{print $2/1024 " MB"}') "
-echo_info "Uptime: $(cat /proc/uptime | awk '{printf "%.1f seconds", $1}')"
-
-echo ""
-
-# ============================================================================
-# MAIN SHELL LAUNCH
-# ============================================================================
-
-echo_status "Initialization complete! System ready."
-echo_info "Launching interactive shell..."
-echo ""
-echo "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-echo "${BLUE}Welcome to ABINSTEIN OS (QEMU ARM64)${NC}"
-echo "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-echo ""
-echo_info "Available commands: ls, cat, echo, mount, ps, top, uname, etc."
-echo_info "Type 'exit' to shutdown system"
-echo ""
-
-# ============================================================================
-# INTERACTIVE SHELL
-# ============================================================================
-
-exec /bin/sh
-
-# If shell exits, trigger shutdown
-echo_status "Shell terminated, initiating shutdown sequence..."
-
-# Unmount filesystems
-echo_status "Unmounting filesystems..."
-umount -a -r 2>/dev/null
-
-echo_status "System halted"
-reboot -f
+main "$@"

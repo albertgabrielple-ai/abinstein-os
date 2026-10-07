@@ -1,0 +1,24 @@
+#!/bin/sh
+# ABINSTEIN OS startup script
+# Executes mount sequence and early system initialization
+
+set -eu
+
+echo "[INIT] Mounting filesystems..."
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+mkdir -p /dev/pts /run /tmp /var/log /var/run
+mount -t devpts devpts /dev/pts 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+
+if [ ! -e /dev/console ]; then mknod /dev/console c 5 1; fi
+if [ ! -e /dev/null ]; then mknod /dev/null c 1 3; chmod 666 /dev/null; fi
+if [ ! -e /dev/zero ]; then mknod /dev/zero c 1 5; chmod 666 /dev/zero; fi
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+export HOME=/root
+export TERM=linux
+
+echo "[INIT] ABINSTEIN OS boot complete"
+echo "[INIT] System ready for userspace services"
